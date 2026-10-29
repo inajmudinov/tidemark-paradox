@@ -1,0 +1,13 @@
+import ts from 'typescript';
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+const src=ts.transpileModule(readFileSync('lib/game.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
+const {initial,resolve,target,view}=await import('data:text/javascript;base64,'+Buffer.from(src).toString('base64'));
+const make=()=>initial([{name:'Amber',token:'secret-a',score:0},{name:'Cyan',token:'secret-b',score:0}]);
+assert.equal(target({cell:3,dir:1}),0);assert.equal(target({cell:0,dir:0}),12);
+let g=make();g.moves=[{cell:0,dir:1},{cell:5,dir:2}];resolve(g);assert.deepEqual(g.players.map(p=>p.score),[1,1]);assert.deepEqual(g.echoes,[1,9]);
+g.moves=[{cell:9,dir:1},{cell:1,dir:0}];resolve(g);assert.deepEqual(g.players.map(p=>p.score),[5,5]);
+g=make();g.echoes=[0,4];g.moves=[{cell:0,dir:0},{cell:0,dir:1}];resolve(g);assert.deepEqual(g.players.map(p=>p.score),[2,2]);assert.deepEqual(g.echoes,[null,null]);
+g=make();g.moves=[{cell:0,dir:0},null];const v=view(g,1);assert.deepEqual(v.moves[0],{locked:true});assert(!JSON.stringify(v).includes('secret-a'));
+g=make();for(let i=0;i<6;i++){g.moves=[{cell:0,dir:1},{cell:15,dir:3}];resolve(g);}assert(g.done);assert.equal(g.round,6);assert.deepEqual(g.players.map(p=>p.score),[16,16]);assert.deepEqual(g.echoes,[null,null]);
+console.log('PASS: wrapping, anchor scores, interception, collision, secret move redaction, six-round ending and draw.');
